@@ -61,7 +61,7 @@ Adding partition: identity(event_time) AS event_time_part
 
 ```sql
 SELECT file_path 
-FROM "s3tablescatalog/mars-log-iceberg".mars_log."mars_cl_log$files"
+FROM "s3tablescatalog/lakehouse-agent-poc".mars_log."mars_cl_log$files"
 WHERE regexp_like(file_path, '/event_time_part=')
 ORDER BY file_path DESC LIMIT 10;
 ```
@@ -88,7 +88,7 @@ Iceberg 通过 spec_id 自动处理多版本，查询照常工作。
 ```python
 AWS_ACCOUNT_ID = "305996241648"
 AWS_REGION = "us-east-1"
-BUCKET_NAME = "mars-log-iceberg"
+BUCKET_NAME = "lakehouse-agent-poc"  # 改成你的真实 S3 Tables bucket 名
 NAMESPACE = "mars_log"
 TABLE_NAME = "mars_cl_log"
 SOURCE_COLUMN = "event_time"
@@ -120,7 +120,7 @@ PARTITION_NAME = "event_time_part"  # 注意不能和源列同名
 aws lakeformation grant-permissions \
   --principal DataLakePrincipalIdentifier=<your-iam-arn> \
   --resource '{"Table":{
-    "CatalogId":"305996241648:s3tablescatalog/mars-log-iceberg",
+    "CatalogId":"305996241648:s3tablescatalog/lakehouse-agent-poc",
     "DatabaseName":"mars_log",
     "Name":"mars_cl_log"
   }}' \

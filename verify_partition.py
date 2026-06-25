@@ -20,7 +20,7 @@ from pyiceberg.catalog import load_catalog
 # 配置 - 和 add_event_time_partition.py 保持一致
 AWS_ACCOUNT_ID = "305996241648"
 AWS_REGION = "us-east-1"
-BUCKET_NAME = "mars-log-iceberg"
+BUCKET_NAME = "lakehouse-agent-poc"
 NAMESPACE = "mars_log"
 TABLE_NAME = "mars_cl_log"
 PARTITION_NAME = "event_time_part"

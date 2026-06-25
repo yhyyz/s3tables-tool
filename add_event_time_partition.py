@@ -32,7 +32,7 @@ from pyiceberg.transforms import IdentityTransform
 # =========================
 AWS_ACCOUNT_ID = "305996241648"
 AWS_REGION = "us-east-1"
-BUCKET_NAME = "mars-log-iceberg"       # S3 Tables bucket 名（不是 ARN）
+BUCKET_NAME = "lakehouse-agent-poc"    # S3 Tables bucket 名（不是 ARN）
 NAMESPACE = "mars_log"
 TABLE_NAME = "mars_cl_log"
 
