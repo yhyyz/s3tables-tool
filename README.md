@@ -31,7 +31,7 @@ DRY_RUN=1 /tmp/pyice/bin/python add_event_time_partition.py
 
 输出会显示：
 - 当前 partition spec（应为空 `[]`）
-- 计划添加的字段：`identity(event_time) AS event_time_part`
+- 计划添加的字段：`identity(event_time) AS event_time`
 - 不实际写入
 
 ### Step 2: 实际执行
@@ -43,9 +43,9 @@ DRY_RUN=1 /tmp/pyice/bin/python add_event_time_partition.py
 成功会看到：
 ```
 [BEFORE] Spec: []
-Adding partition: identity(event_time) AS event_time_part
-[AFTER] Spec: [1000: event_time_part: identity(35)]
-✅ Partition 'event_time_part' (identity on event_time) added successfully
+Adding partition: identity(event_time) AS event_time
+[AFTER] Spec: [1000: event_time: identity(35)]
+✅ Partition 'event_time' (identity on event_time) added successfully
 → Firehose 不需要任何改动，下一次 buffer flush 后新数据将自动写入分区目录。
 ```
 
@@ -62,14 +62,14 @@ Adding partition: identity(event_time) AS event_time_part
 ```sql
 SELECT file_path 
 FROM "s3tablescatalog/lakehouse-agent-poc".mars_log."mars_cl_log$files"
-WHERE regexp_like(file_path, '/event_time_part=')
+WHERE regexp_like(file_path, '/event_time=')
 ORDER BY file_path DESC LIMIT 10;
 ```
 
 期望（Firehose buffer flush 后）：
 ```
-.../data/event_time_part=2026-06-25-06/00001-...parquet
-.../data/event_time_part=2026-06-25-07/00002-...parquet
+.../data/event_time=2026-06-25-06/00001-...parquet
+.../data/event_time=2026-06-25-07/00002-...parquet
 ```
 
 ### Step 4 (可选): 回滚
@@ -92,8 +92,16 @@ BUCKET_NAME = "lakehouse-agent-poc"  # 改成你的真实 S3 Tables bucket 名
 NAMESPACE = "mars_log"
 TABLE_NAME = "mars_cl_log"
 SOURCE_COLUMN = "event_time"
-PARTITION_NAME = "event_time_part"  # 注意不能和源列同名
+PARTITION_NAME = "event_time"  # Identity transform 用源列名是 Iceberg 惯例
 ```
+
+> **关于 PARTITION_NAME 的命名规则**：
+> - **Identity transform**: partition name 可以、推荐和源列同名（如本例 `event_time`）
+> - **非 Identity transform**（`truncate`/`bucket`/`day`/`hour`...）: 必须和源列不同名，
+>   否则 Iceberg 会报错 `Cannot create non-identity partition with same name as source field`
+>
+> partition name **不影响查询写法** — 查询永远用源列名 `event_time`，
+> 它只影响 S3 目录前缀（`/event_time=YYYY-MM-DD-HH/...`）和 metadata 标识。
 
 ## 前置 IAM 权限
 
@@ -163,9 +171,10 @@ WHERE "timestamp" >= '2026-06-15'
 
 ## 常见错误处理
 
-### `Cannot create identity partition sourced from different field`
-分区字段名 (`PARTITION_NAME`) 不能和源列 (`SOURCE_COLUMN`) 同名。
-脚本里已经预防了 - 用了 `event_time_part` 而不是 `event_time`。
+### Identity vs 非 Identity transform 的命名规则
+- **Identity transform**: `PARTITION_NAME` 可以、推荐和 `SOURCE_COLUMN` 同名（如 `event_time` → `event_time`）
+- **非 Identity transform**（`truncate`/`bucket`/`day`/`hour`...）: 名字必须不同
+  - 例如 `truncate(10, "timestamp")` 必须叫 `event_day` 或其他名字，不能叫 `timestamp`
 
 ### `Lakeformation.AccessDenied`  
 Lake Formation 权限不够。运行 README 里的 `grant-permissions` 命令。
@@ -183,7 +192,7 @@ Lake Formation 权限不够。运行 README 里的 `grant-permissions` 命令。
 执行成功后：
 
 1. **当前 buffer 中的记录**: 可能按旧 spec (无分区) 写入 - Firehose schema 缓存滞后几秒到几分钟
-2. **下一次 buffer flush 起**: 新文件路径自动变成 `.../data/event_time_part=YYYY-MM-DD-HH/...`
+2. **下一次 buffer flush 起**: 新文件路径自动变成 `.../data/event_time=YYYY-MM-DD-HH/...`
 3. **旧数据文件**: 保持原位 (`.../data/00001-...`), 不会迁移
 4. **查询时**: Athena/Spark 自动识别多个 spec, 结果正确
 

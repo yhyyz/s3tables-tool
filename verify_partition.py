@@ -23,7 +23,7 @@ AWS_REGION = "us-east-1"
 BUCKET_NAME = "lakehouse-agent-poc"
 NAMESPACE = "mars_log"
 TABLE_NAME = "mars_cl_log"
-PARTITION_NAME = "event_time_part"
+PARTITION_NAME = "event_time"
 
 logging.basicConfig(
     level=logging.INFO,

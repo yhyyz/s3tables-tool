@@ -37,7 +37,7 @@ NAMESPACE = "mars_log"
 TABLE_NAME = "mars_cl_log"
 
 SOURCE_COLUMN = "event_time"           # 现有的 varchar 列，格式如 '2026-06-05-08'
-PARTITION_NAME = "event_time_part"     # 分区字段名，不能和源列同名
+PARTITION_NAME = "event_time"          # 分区字段名 - identity transform 用源列名是 Iceberg 惯例
 
 # =========================
 # 运行模式
@@ -127,14 +127,12 @@ def add_partition(catalog):
         )
         sys.exit(1)
 
-    # 安全检查 2: 分区字段名不能和现有列冲突
-    if PARTITION_NAME in cols:
-        log.error(
-            "Partition field name '%s' collides with existing column. "
-            "Choose a different PARTITION_NAME.",
-            PARTITION_NAME,
-        )
-        sys.exit(1)
+    # 安全检查 2: 名字冲突规则因 transform 而异
+    # - Identity transform: partition_name 可以、推荐和源列同名（Iceberg 标准约定）
+    # - 非 Identity transform (truncate/bucket/day/...): 必须和源列不同名
+    # 当前用 Identity，所以不需要检查冲突。如果改为其他 transform，请加上：
+    #   if PARTITION_NAME == SOURCE_COLUMN and not isinstance(TRANSFORM, IdentityTransform):
+    #       log.error("Non-identity transform requires different partition name"); sys.exit(1)
 
     # 安全检查 3: 幂等 - 已存在则跳过
     if has_partition_field(table, PARTITION_NAME):
