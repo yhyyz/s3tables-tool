@@ -14,6 +14,7 @@ verify_partition.py - 验证分区是否生效
 
 import logging
 import sys
+from datetime import datetime, timezone
 
 from pyiceberg.catalog import load_catalog
 
@@ -64,10 +65,15 @@ def main():
     snap = table.current_snapshot()
     if snap:
         log.info("  Current snapshot id: %s", snap.snapshot_id)
-        log.info("  Timestamp: %s", snap.timestamp_ms)
-        summary = snap.summary if snap.summary else {}
-        for k, v in (summary.additional_properties or {}).items():
-            log.info("  %s = %s", k, v)
+        ts_iso = datetime.fromtimestamp(
+            snap.timestamp_ms / 1000, tz=timezone.utc
+        ).isoformat(timespec="milliseconds")
+        log.info("  Timestamp: %s (epoch_ms=%s)", ts_iso, snap.timestamp_ms)
+        summary = snap.summary if snap.summary else None
+        if summary:
+            log.info("  operation = %s", summary.operation)
+            for k, v in (summary.additional_properties or {}).items():
+                log.info("  %s = %s", k, v)
     else:
         log.info("  No snapshot yet")
 
